@@ -11,3 +11,9 @@ insane.
 Ever heard of the butterfly effect? Used in 
 weather calculations, circuits, machine learning... 
 lots of use cases.
+
+## Extra Figs
+
+![beutiful](figs/fig1.png)
+![butterfly](figs/fig2.png)
+
