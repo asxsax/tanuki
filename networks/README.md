@@ -12,7 +12,7 @@ Current list of progs
 
 ## Packet Sniffer
 
-![fig1](figs/fig3.png)
+<img src="figs/fig3.png" width="200" />
 
 Sniffs packets, filters for what we want (simple src, dst). May
 visit later to create more complex filters, those that are found
@@ -21,7 +21,7 @@ idea huh? Recreate certain networking CVEs!
 
 ## Geo-Plot IP
 
-![fig2](figs/fig2.png)
+<img src="figs/fig2.png" width="200" />
 
 Gather IPs using scapy and plot on static geopandas map.
 Points conversion via shapley points lib. I could make this
