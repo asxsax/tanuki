@@ -2,11 +2,12 @@
 
 # > Plot IPs on geo-map for observation
 
+import json
 import requests
-import cartopy.crs as crs
-import cartopy.features as cfeature
 import matplotlib.pyplot as plt
 from scapy.all import *
+from shapely.geometry import Point
+import geopandas as gpd
 
 HEX_MAX_WIDTH = 40
 STR_MAX_WIDTH = 20
@@ -25,30 +26,27 @@ def geo_location(ip):
     else:
         return None
 
-def plot_geos(geos):
-    plt.figure(figsize=(12,6))
-    ax = plt.axes(projection=ccrs.Robinsion())
-
-    ax.add_feature(cfeature.COASTLINE)
-    ax.add_feature(cfeature.BORDERS, linestyle=':')
-    ax.add_feature(cfeature.OCEAN, facecolor='lightblue')
-    ax.add_feature(cfeature.LAND, facecolor='lightgreen')
-    ax.add_feature(cfeature.LAKES, facecolor='lightblue')
-    ax.add_feature(cfeature.RIVERS)
-
-    for ip, geo in geos.items():
-        if geo and 'loc' in geo:
-            lat, lon = map(float, geo['loc'].split(','))
-            plt.plot(lon, lat, marker='o', color='red', 
-                     markersize=5, transform=ccrs.Geodetic())
-            plt.text(lon, lat, ip, transform=ccrs.Geodetic())
-
-packets = AsyncSniffer(count=500, prn=collect_ip, filter="ip")
+packets = AsyncSniffer(count=1000, prn=collect_ip, filter="ip")
 packets.start()
 packets.join()
 pcap = packets.results
 
 geos = {ip: geo_location(ip) for ip in unique_ip}
 
-plt.title("IP Geolocation")
+geo_locations={}
+for ip, data in geos.items():
+    if 'loc' in data:
+        geo_locations[ip] = data['loc']
+print (f"Longs&Lats: {geo_locations}")
+
+points = [Point(float(loc.split(',')[1]), float(loc.split(',')[0])) for loc in geo_locations.values()]
+
+df = gpd.GeoDataFrame(geometry=points)
+world = gpd.read_file(gpd.datasets.get_path('naturalearth_lowres'))
+
+fig, ax = plt.subplots(figsize=(10, 7))
+base = world.plot(ax=ax, color='lightblue', edgecolor='gray')
+df.plot(ax=base, marker='x', color='red', markersize=25)
+
+plt.axis('off')
 plt.show()
