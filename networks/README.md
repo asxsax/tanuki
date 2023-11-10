@@ -21,7 +21,7 @@ idea huh? Recreate certain networking CVEs!
 
 ## Geo-Plot IP
 
-<img src="figs/fig2.png" width="200" />
+<img src="figs/fig2.png" width="350" />
 
 Gather IPs using scapy and plot on static geopandas map.
 Points conversion via shapley points lib. I could make this
