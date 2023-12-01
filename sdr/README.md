@@ -1,3 +1,4 @@
+```
 signal capture:
 > filter:
   > low pass to remove filter
@@ -11,3 +12,4 @@ signal capture:
     > type of signal,
     > type of filter,
     > signal quality,
+```
