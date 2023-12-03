@@ -1,38 +1,15 @@
-```
-data collection:
-> gnu radio wbfm capture; 3 stations or so
-> save capture to file
+# Software Defined Radios
 
-filter:
-> low pass, hamming window
-> plot frequency response and autocorrelation response
+Code pertaining to software defined radio projects.
 
-analysis:
-> compare autocorrelation and bandwidth
-> measure performance via bandwidth calculation every .1~ seconds
-> best signal quality is one with highest average bandwidth
+## FM Capture; no demoulation
 
-target detection:
-> cross-ambiguity function calculation, create range-velocity map
-> compare time-day of arrival between illuminator and transmitter
+There is a simple FM capture, no demoulation in python. Frequency and other paramters are all hard coded, sorry. Easy to change if needed. Implemented using RTL SDR; also first time using such a device. Really cool low-cost tech.
 
-echo signal simulation:
-> simulated echo signal to calculate doppler-shift
-> can do some attenuation
-> calculate cross-ambiguity function of the two signals
-> clutter removal to get rid of positive-delay reflections in ref. signals
+## Simulated Static Passive Radar
 
-signal capture:
-> filter:
-  > low pass to remove filter
-  > bandpass to center around center_freq [+100KHz each side (200KHz)]
-> demodulator: [haha... demod manually in python...]
-  > look soapysdr or gr-osmosdr
+Also implemented Radar, but it does not have all the necessary code. Thinking of submitting this as open-source software to some project in radar technology. Maybe creating customg GNU Radio blocks for this too would be a good idea.
 
-> machine learning:
-  > pytorch/tensorflow. whichever easier.
-  > look for something to classify
-    > type of signal,
-    > type of filter,
-    > signal quality,
-```
+Check out figs dir, interesting plots in there...
+
+![CAF cluster](figs/cross_ambiguity_with_clutter.png)
