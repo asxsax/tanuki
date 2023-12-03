@@ -1,20 +1,18 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.signal import convolve, correlate
+from scipy.signal import convolve, correlate, fftconvolve
 from numpy.fft import fftshift, fft
-from scipy.signal import butter, lfilter, fftconvolve, periodogram
 
-
-def cross_ambiguity(xr, xe, max_lag, Fs, lambda_, idx, caf_figure_no):
-    c = 3e8
-    T = len(xr) / Fs
-    corr = correlate(xe, xr, mode='full', method='auto')
+def cross_ambiguity(receiver_signal, emitter_signal, max_lag, sampling_frequency, wavelength, index, figure_number):
+    speed_of_light = 3e8
+    signal_duration = len(receiver_signal) / sampling_frequency
+    correlation = correlate(emitter_signal, receiver_signal, mode='full', method='auto')
     lags = np.arange(-max_lag, max_lag + 1)
-    corr = np.abs(corr) / np.max(np.abs(corr))
-    D = -c * lags / Fs
+    correlation = np.abs(correlation) / np.max(np.abs(correlation))
+    bistatic_range = -speed_of_light * lags / sampling_frequency
 
     plt.figure(5)
-    plt.plot(D / 1000, 20 * np.log10(corr))
+    plt.plot(bistatic_range / 1000, 20 * np.log10(correlation))
     plt.title('Crosscorrelation Signal')
     plt.xlabel('Bistatic Range (km)')
     plt.ylabel('Magnitude (dB)')
@@ -22,28 +20,32 @@ def cross_ambiguity(xr, xe, max_lag, Fs, lambda_, idx, caf_figure_no):
     plt.xlim([-100, 100])
     plt.show()
 
-    decimation = 1000
-    f_dec = np.linspace(-Fs / 2 / decimation, (Fs / 2 - 1 / T) / decimation, int(T * Fs / decimation))
-    D = c * lags / Fs
-    V = -lambda_ * f_dec
+    decimation_factor = 1000
+    frequency_decimated = np.linspace(-sampling_frequency / 2 / decimation_factor, 
+                                      (sampling_frequency / 2 - 1 / signal_duration) / decimation_factor,
+                                      int(signal_duration * sampling_frequency / decimation_factor))
+    bistatic_velocity = -wavelength * frequency_decimated
 
-    psi = np.zeros((2 * max_lag + 1, len(f_dec)))
+    ambiguity_function = np.zeros((2 * max_lag + 1, len(frequency_decimated)))
     for lag in range(-max_lag, max_lag + 1):
         m = lag + max_lag
-        y = decimate(np.conj(xr) * np.roll(xe, lag), decimation, Fs)
-        psi[m, :] = fftshift(fft(y))
+        decimated_correlation = decimate(np.conj(receiver_signal) * np.roll(emitter_signal, lag), 
+                                         decimation_factor, sampling_frequency)
+        ambiguity_function[m, :] = fftshift(fft(decimated_correlation))
 
-    psi = np.abs(psi)
+    ambiguity_function = np.abs(ambiguity_function)
 
     plt.figure(6)
-    plt.plot(V, 20 * np.log10(psi[max_lag, :]))
+    plt.plot(bistatic_velocity, 20 * np.log10(ambiguity_function[max_lag, :]))
     plt.title('0-Range Cut of Ambiguity Function')
     plt.xlabel('Bistatic Velocity (m/s)')
     plt.ylabel('|χ(0,V)| (dB)')
     plt.show()
 
-    plt.figure(caf_figure_no)
-    plt.imshow(20 * np.log10(psi), extent=(V[0], V[-1], D[0] / 1000, D[-1] / 1000), aspect='auto')
+    plt.figure(figure_number)
+    plt.imshow(20 * np.log10(ambiguity_function), extent=(bistatic_velocity[0], bistatic_velocity[-1], 
+                                                         bistatic_range[0] / 1000, bistatic_range[-1] / 1000), 
+               aspect='auto')
     plt.xlabel('Bistatic Velocity (m/s)')
     plt.xlim([-450, 450])
     plt.ylabel('Bistatic Range (km)')
@@ -52,69 +54,69 @@ def cross_ambiguity(xr, xe, max_lag, Fs, lambda_, idx, caf_figure_no):
     plt.colorbar()
     plt.show()
 
-    return psi
+    return ambiguity_function
 
-def low_pass(signal, order, normalized_cutoff_freq):
-    N = order - 1
-    n = np.arange(0, N + 1)
-    fc = normalized_cutoff_freq
-    sinc_func = np.sinc(2 * fc * (n - N / 2))
-    hamming_window = 0.54 - 0.46 * np.cos(2 * np.pi * n / N)
+def low_pass_filter(signal, filter_order, normalized_cutoff_frequency):
+    num_taps = filter_order - 1
+    n = np.arange(0, num_taps + 1)
+    cutoff_frequency = normalized_cutoff_frequency
+    sinc_function = np.sinc(2 * cutoff_frequency * (n - num_taps / 2))
+    hamming_window = 0.54 - 0.46 * np.cos(2 * np.pi * n / num_taps)
 
-    filter_coeffs = sinc_func * hamming_window
-    filter_coeffs /= np.sum(filter_coeffs)
-    filtered_signal = convolve(signal, filter_coeffs, mode='same')
+    filter_coefficients = sinc_function * hamming_window
+    filter_coefficients /= np.sum(filter_coefficients)
+    filtered_signal = convolve(signal, filter_coefficients, mode='same')
 
     return filtered_signal
 
-def decimate(signal, decimation, fs):
-    f_cutoff_normalized = 0.8 / decimation
-    filtered_signal = low_pass(signal, order=501, normalized_cutoff_freq=f_cutoff_normalized)
-    decimated_signal = filtered_signal[::decimation]
+def decimate_signal(signal, decimation_factor, sampling_frequency):
+    cutoff_frequency_normalized = 0.8 / decimation_factor
+    filtered_signal = low_pass_filter(signal, order=501, normalized_cutoff_frequency=cutoff_frequency_normalized)
+    decimated_signal = filtered_signal[::decimation_factor]
     return decimated_signal
 
-def plot_fft_station(complex_signal, f, radio_station):
+def plot_fft_station_spectrum(complex_signal, frequency, station_name):
     complex_signal_fft = np.fft.fftshift(np.fft.fft(complex_signal))
     complex_signal_fft_normalized = np.abs(complex_signal_fft) / np.max(np.abs(complex_signal_fft))
     
     plt.figure()
-    plt.plot(f/1e3, 20*np.log10(complex_signal_fft_normalized))
+    plt.plot(frequency/1e3, 20*np.log10(complex_signal_fft_normalized))
     plt.xlabel('Frequency (kHz)')
     plt.ylabel('Magnitude (dBFS)')
-    plt.title(f'Frequency Domain Signal for Station {radio_station}')
+    plt.title(f'Frequency Domain Signal for Station {station_name}')
     plt.show()
 
     return complex_signal_fft_normalized
 
-def plot_xcorr(complex_signal, Fs, radio_station):
+def plot_autocorrelation(complex_signal, sampling_frequency, station_name):
     lags = np.arange(-len(complex_signal) + 1, len(complex_signal))
-    R = fftconvolve(complex_signal, complex_signal.conj()[::-1], mode='full')
-    R_normalized = np.abs(R) / np.max(np.abs(R))
+    autocorrelation = fftconvolve(complex_signal, complex_signal.conj()[::-1], mode='full')
+    autocorrelation_normalized = np.abs(autocorrelation) / np.max(np.abs(autocorrelation))
     plt.figure()
-    plt.plot(lags / Fs * 1e6, 20 * np.log10(R_normalized))
+    plt.plot(lags / sampling_frequency * 1e6, 20 * np.log10(autocorrelation_normalized))
     plt.xlabel('Lag (μs)')
     plt.ylabel('|R(τ)| (dB)')
-    plt.title(f'Autocorrelation of the Complex Signal for Station {radio_station}')
+    plt.title(f'Autocorrelation of the Complex Signal for Station {station_name}')
     plt.show()
 
-def calc_3db_bw(f, complex_signal_fft_normalized):
+def calculate_3db_bandwidth(frequency, complex_signal_fft_normalized):
     power_signal_fft = complex_signal_fft_normalized**2
     peak_power = np.max(power_signal_fft)
-    peak_power_db = 20 * np.log10(power_signal_fft)
-    f_lower = f[np.where(peak_power_db >= -3)[0][0]]
-    f_upper = f[np.where(peak_power_db >= -3)[0][-1]]
-    BW_3db = f_upper - f_lower
-    return BW_3db
+    peak_power_dB = 20 * np.log10(power_signal_fft)
+    lower_frequency = frequency[np.where(peak_power_dB >= -3)[0][0]]
+    upper_frequency = frequency[np.where(peak_power_dB >= -3)[0][-1]]
+    bandwidth_3db = upper_frequency - lower_frequency
+    return bandwidth_3db
 
-def process_passive_radar(filename, Fs, fc):
+def process_passive_radar_data(filename, sampling_frequency, center_frequency):
     data = np.fromfile(filename, dtype=np.uint8)
-    c = 3e8
-    lambda_ = c / fc
-    T = 1.0
-    cpi = int(T * Fs * 2)
+    speed_of_light = 3e8
+    wavelength = speed_of_light / center_frequency
+    signal_duration = 1.0
+    cpi = int(signal_duration * sampling_frequency * 2)
     num_steps = 30
 
-    BWs_list = []
+    bandwidths_list = []
 
     for inc in range(100):
         data_segment = data[1 + (inc - 1) * cpi : cpi + (inc - 1) * cpi]
@@ -123,21 +125,22 @@ def process_passive_radar(filename, Fs, fc):
         complex_signal = real_data + 1j * complex_data
         complex_signal -= np.mean(complex_signal)
 
-        complex_signal = low_pass(complex_signal, 50, 0.4)
+        complex_signal = low_pass_filter(complex_signal, 50, 0.4)
 
         N = len(complex_signal)
-        f = np.linspace(-Fs / 2, Fs / 2 - Fs / N, N)
+        frequency = np.linspace(-sampling_frequency / 2, sampling_frequency / 2 - sampling_frequency / N, N)
 
-        complex_signal_fft_normalized = plot_fft_station(complex_signal, f, "93.3 MHz")
-        plot_xcorr(complex_signal, Fs, "93.3 MHz")
-        BW_3db = calc_3db_bw(f, complex_signal_fft_normalized)
-        BWs_list.append(BW_3db)
+        complex_signal_fft_normalized = plot_fft_station_spectrum(complex_signal, frequency, "93.3 MHz")
+        plot_autocorrelation(complex_signal, sampling_frequency, "93.3 MHz")
+        bandwidth_3db = calculate_3db_bandwidth(frequency, complex_signal_fft_normalized)
+        bandwidths_list.append(bandwidth_3db)
 
     plt.figure()
-    plt.plot(np.arange(1, num_steps + 1), BWs_list)
+    plt.plot(np.arange(1, num_steps + 1), bandwidths_list)
     plt.xlabel('Time (seconds)')
     plt.ylabel('Bandwidth (kHz)')
     plt.title(f'Bandwidth Over Time for Channel 93.3 MHz')
     plt.show()
 
-process_passive_radar('104_3', 2.4e6, 104.3e6)
+process_passive_radar_data('104_3', 2.4e6, 104.3e6)
+
