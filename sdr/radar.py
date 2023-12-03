@@ -13,8 +13,8 @@ def cross_ambiguity(receiver_signal, emitter_signal, max_lag, sampling_frequency
 
     plt.figure(5)
     plt.plot(bistatic_range / 1000, 20 * np.log10(correlation))
-    plt.title('Crosscorrelation Signal')
-    plt.xlabel('Bistatic Range (km)')
+    plt.title('Crosscorrelation')
+    plt.xlabel('Bistatic Range (KM)')
     plt.ylabel('Magnitude (dB)')
     plt.grid(True)
     plt.xlim([-100, 100])
@@ -37,7 +37,7 @@ def cross_ambiguity(receiver_signal, emitter_signal, max_lag, sampling_frequency
 
     plt.figure(6)
     plt.plot(bistatic_velocity, 20 * np.log10(ambiguity_function[max_lag, :]))
-    plt.title('0-Range Cut of Ambiguity Function')
+    plt.title('0 Time Delay of Ambiguity Function')
     plt.xlabel('Bistatic Velocity (m/s)')
     plt.ylabel('|χ(0,V)| (dB)')
     plt.show()
@@ -48,7 +48,7 @@ def cross_ambiguity(receiver_signal, emitter_signal, max_lag, sampling_frequency
                aspect='auto')
     plt.xlabel('Bistatic Velocity (m/s)')
     plt.xlim([-450, 450])
-    plt.ylabel('Bistatic Range (km)')
+    plt.ylabel('Bistatic Range (KM)')
     plt.ylim([10, 100])
     plt.title('Cross-Ambiguity Function')
     plt.colorbar()
@@ -82,8 +82,8 @@ def plot_fft_station_spectrum(complex_signal, frequency, station_name):
     plt.figure()
     plt.plot(frequency/1e3, 20*np.log10(complex_signal_fft_normalized))
     plt.xlabel('Frequency (kHz)')
-    plt.ylabel('Magnitude (dBFS)')
-    plt.title(f'Frequency Domain Signal for Station {station_name}')
+    plt.ylabel('Magnitude (dB)')
+    plt.title(f'Raw {station_name}')
     plt.show()
 
     return complex_signal_fft_normalized
@@ -96,7 +96,7 @@ def plot_autocorrelation(complex_signal, sampling_frequency, station_name):
     plt.plot(lags / sampling_frequency * 1e6, 20 * np.log10(autocorrelation_normalized))
     plt.xlabel('Lag (μs)')
     plt.ylabel('|R(τ)| (dB)')
-    plt.title(f'Autocorrelation of the Complex Signal for Station {station_name}')
+    plt.title(f'Autocorrelation {station_name}')
     plt.show()
 
 def calculate_3db_bandwidth(frequency, complex_signal_fft_normalized):
@@ -130,8 +130,8 @@ def process_passive_radar_data(filename, sampling_frequency, center_frequency):
         N = len(complex_signal)
         frequency = np.linspace(-sampling_frequency / 2, sampling_frequency / 2 - sampling_frequency / N, N)
 
-        complex_signal_fft_normalized = plot_fft_station_spectrum(complex_signal, frequency, "93.3 MHz")
-        plot_autocorrelation(complex_signal, sampling_frequency, "93.3 MHz")
+        complex_signal_fft_normalized = plot_fft_station_spectrum(complex_signal, frequency, "104.3 MHz")
+        plot_autocorrelation(complex_signal, sampling_frequency, "104.3 MHz")
         bandwidth_3db = calculate_3db_bandwidth(frequency, complex_signal_fft_normalized)
         bandwidths_list.append(bandwidth_3db)
 
@@ -139,8 +139,7 @@ def process_passive_radar_data(filename, sampling_frequency, center_frequency):
     plt.plot(np.arange(1, num_steps + 1), bandwidths_list)
     plt.xlabel('Time (seconds)')
     plt.ylabel('Bandwidth (kHz)')
-    plt.title(f'Bandwidth Over Time for Channel 93.3 MHz')
+    plt.title(f'Bandwidth [] MHz')
     plt.show()
 
 process_passive_radar_data('104_3', 2.4e6, 104.3e6)
-
